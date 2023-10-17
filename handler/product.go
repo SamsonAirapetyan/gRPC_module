@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"context"
 	"gRPC/data"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 )
 
@@ -16,38 +17,7 @@ func NewProduct(l *log.Logger) *Product {
 	return &Product{l: l}
 }
 
-func (pr *Product) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		pr.getProduct(rw, r)
-		return
-	}
-	if r.Method == http.MethodPost {
-		pr.postProduct(rw, r)
-		return
-	}
-	if r.Method == http.MethodPut {
-		//we have ti get id from URL
-		regex := regexp.MustCompile("/([0-9]+)")
-		g := regex.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-		pr.l.Println("got id", id)
-
-		pr.updateProduct(id, rw, r)
-		return
-	}
-	rw.WriteHeader(http.StatusMethodNotAllowed)
-}
-
-func (pr *Product) getProduct(rw http.ResponseWriter, r *http.Request) {
+func (pr *Product) GetProduct(rw http.ResponseWriter, r *http.Request) {
 	pr.l.Println("Handle GET Product")
 	lp := data.GetProduct()
 	err := lp.ToJSON(rw)
@@ -56,24 +26,19 @@ func (pr *Product) getProduct(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (pr *Product) postProduct(rw http.ResponseWriter, r *http.Request) {
+func (pr *Product) PostProduct(rw http.ResponseWriter, r *http.Request) {
 	pr.l.Println("Handle POST Product")
-	lp := &data.Product{}
-	err := lp.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "Unable decode json", http.StatusInternalServerError)
-	}
-	data.AddProduct(lp)
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
+	data.AddProduct(&prod)
 }
 
-func (pr *Product) updateProduct(id int, rw http.ResponseWriter, r *http.Request) {
+func (pr *Product) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
 	pr.l.Println("Handle PUT Product")
-	lp := &data.Product{}
-	err := lp.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "Unable decode json", http.StatusInternalServerError)
-	}
-	err = data.UpdateProduct(id, lp)
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
+
+	err := data.UpdateProduct(id, &prod)
 	if err != nil {
 		if err == data.ErrProductNotFound {
 			http.Error(rw, "Product not found", http.StatusNotFound)
@@ -81,4 +46,23 @@ func (pr *Product) updateProduct(id int, rw http.ResponseWriter, r *http.Request
 		}
 		http.Error(rw, "Something went wrong", http.StatusBadRequest)
 	}
+}
+
+type KeyProduct struct{}
+
+func (p Product) MiddlewareProductVallidation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		prod := data.Product{}
+		err := prod.FromJSON(r.Body)
+		if err != nil {
+			http.Error(w, "Unable decode json", http.StatusInternalServerError)
+			return
+		}
+
+		//оказывается context - это один из параметров структуры Request и можно в него запихнуть параметр (например из middleware нашу продукцию)
+		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+
+	})
 }
