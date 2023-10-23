@@ -18,3 +18,5 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 )
+
+replace github.com/SamsonAirapetyan/gRPC_module/protos/currency	=> ./protos/currency
