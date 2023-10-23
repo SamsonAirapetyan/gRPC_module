@@ -1,8 +1,8 @@
 package main
 
 import (
-	protos "github.com/SamsonAirapetyan/gRPC/protos/currency"
-	"github.com/SamsonAirapetyan/gRPC/server"
+	protos "github.com/SamsonAirapetyan/gRPC_module/protos/currency"
+	"github.com/SamsonAirapetyan/gRPC_module/server"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

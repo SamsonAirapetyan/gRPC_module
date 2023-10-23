@@ -1,4 +1,4 @@
-module github.com/SamsonAirapetyan/gRPC
+module github.com/SamsonAirapetyan/gRPC_module
 
 go 1.21
 

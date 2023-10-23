@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	protos "github.com/SamsonAirapetyan/gRPC/protos/currency"
+	protos "github.com/SamsonAirapetyan/gRPC_module/protos/currency"
 	"github.com/hashicorp/go-hclog"
 )
 
