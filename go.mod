@@ -19,4 +19,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 )
 
-replace github.com/SamsonAirapetyan/gRPC_module	=> /home/samson/Documents/Go/gRPC_example/protos/currency
+//replace github.com/SamsonAirapetyan/gRPC_module	=> /home/samson/Documents/Go/gRPC_example/protos/currency
