@@ -1,8 +1,22 @@
+// Package classification of Product API
+//
+// Documentation for Product API
+//
+// Schemes: http
+// BasePath: /
+// Version:1.0.0
+//
+// Consumes:
+// - application/json
+//
+// Produces:
+// -application/json
+// swagger: meta
+
 package handler
 
 import (
-	"context"
-	"gRPC/data"
+	protos "github.com/SamsonAirapetyan/gRPC_module/protos/currency"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -10,59 +24,24 @@ import (
 )
 
 type Product struct {
-	l *log.Logger
+	l  *log.Logger
+	cc protos.CurrencyClient
 }
 
-func NewProduct(l *log.Logger) *Product {
-	return &Product{l: l}
+func NewProduct(l *log.Logger, cc protos.CurrencyClient) *Product {
+	return &Product{l: l, cc: cc}
 }
 
-func (pr *Product) GetProduct(rw http.ResponseWriter, r *http.Request) {
-	pr.l.Println("Handle GET Product")
-	lp := data.GetProduct()
-	err := lp.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, " Unable marshal json", http.StatusInternalServerError)
-	}
-}
-
-func (pr *Product) PostProduct(rw http.ResponseWriter, r *http.Request) {
-	pr.l.Println("Handle POST Product")
-	prod := r.Context().Value(KeyProduct{}).(data.Product)
-	data.AddProduct(&prod)
-}
-
-func (pr *Product) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
+func getProductID(r *http.Request) int {
+	// parse the product id from the url
 	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
-	pr.l.Println("Handle PUT Product")
-	prod := r.Context().Value(KeyProduct{}).(data.Product)
 
-	err := data.UpdateProduct(id, &prod)
+	// convert the id into an integer and return
+	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		if err == data.ErrProductNotFound {
-			http.Error(rw, "Product not found", http.StatusNotFound)
-			return
-		}
-		http.Error(rw, "Something went wrong", http.StatusBadRequest)
+		// should never happen
+		panic(err)
 	}
-}
 
-type KeyProduct struct{}
-
-func (p Product) MiddlewareProductVallidation(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		prod := data.Product{}
-		err := prod.FromJSON(r.Body)
-		if err != nil {
-			http.Error(w, "Unable decode json", http.StatusInternalServerError)
-			return
-		}
-
-		//оказывается context - это один из параметров структуры Request и можно в него запихнуть параметр (например из middleware нашу продукцию)
-		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-
-	})
+	return id
 }

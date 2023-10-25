@@ -3,16 +3,17 @@ package data
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"io"
 	"time"
 )
 
 type Product struct {
 	ID          int     `json:"id"`
-	Name        string  `json:"name"`
+	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	SKU         string  `json:"sku"`
+	Price       float32 `json:"price" validate:"required,gt=0"`
+	SKU         string  `json:"sku" validate:"required"`
 	CreateOn    string  `json:"-"`
 	UpdateOn    string  `json:"-"`
 	DeleteOn    string  `json:"-"`
@@ -20,14 +21,15 @@ type Product struct {
 
 type Products []*Product
 
+func (p *Product) Validate() error {
+	validate := validator.New()
+	//validate.RegisterValidation("sku")
+	return validate.Struct(p)
+}
+
 func (p *Products) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(p)
-}
-
-func (p *Product) FromJSON(w io.Reader) error {
-	e := json.NewDecoder(w)
-	return e.Decode(p)
 }
 
 func AddProduct(p *Product) {
@@ -42,6 +44,15 @@ func UpdateProduct(id int, p *Product) error {
 	}
 	p.ID = id
 	productList[pos] = p
+	return nil
+}
+
+func DeleteProduct(id int) error {
+	i, _ := findProduct(id)
+	if i == -1 {
+		return ErrProductNotFound
+	}
+	productList = append(productList[:i], productList[i+1])
 	return nil
 }
 
@@ -63,6 +74,15 @@ func getNextID() int {
 
 func GetProduct() Products {
 	return productList
+}
+
+func GetProductByID(id int) (*Product, error) {
+	i, _ := findProduct(id)
+	if id == -1 {
+		return nil, ErrProductNotFound
+	}
+
+	return productList[i], nil
 }
 
 var productList = []*Product{
