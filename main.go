@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/SamsonAirapetyan/gRPC_module/data"
 	protos "github.com/SamsonAirapetyan/gRPC_module/protos/currency"
 	"github.com/SamsonAirapetyan/gRPC_module/server"
 	"github.com/hashicorp/go-hclog"
@@ -13,7 +14,12 @@ import (
 func main() {
 	log := hclog.Default()
 	gs := grpc.NewServer()
-	cs := server.NewCurrency(log)
+	ex, err := data.NewExchangeRates(log)
+	if err != nil {
+		log.Error("Unable to create Exchange Rates", "error", err)
+		os.Exit(1)
+	}
+	cs := server.NewCurrency(ex, log)
 
 	protos.RegisterCurrencyServer(gs, cs)
 	reflection.Register(gs)
